@@ -11,13 +11,14 @@ class beer_display(Tkinter.Tk):
 
     def get_beer_consumed(self):
         # This is for testing.  Eventually this'll use self.arduino, but that only works if it actually has an arduino connected.
-        self.beer_1_consumed = self.beer_1_consumed + 1
-        self.beer_2_consumed = self.beer_2_consumed + 1
+        drink_info = self.arduino.read_drink_info_from_serial()
+        self.beer_1_consumed = round(drink_info["1"]["c"] * .033814, 2)
+        self.beer_2_consumed = round(drink_info["2"]["c"] * .033814, 2)
         return self.beer_1_consumed, self.beer_2_consumed
 
     def __init__(self,parent):
         Tkinter.Tk.__init__(self,parent)
-        # self.arduino = arduino()
+        self.arduino = arduino()
         self.parent = parent
         # The following two lines are for testing
         # Eventually this'll come from an on-disk file or AWS
