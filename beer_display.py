@@ -1,30 +1,35 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
 
-import Tkinter
-import tkFont
 import time
 import serial
-from lib.arduino_io import arduino
+from lib.arduino_io import arduino, fake_arduino
+from lib.image_utils import get_resized_image
+import os, sys
+import Tkinter
+from Tkinter import *
+import Image, ImageTk
+import tkFont
+
 
 class beer_display(Tkinter.Tk):
 
-    def get_beer_consumed(self):
-        # This is for testing.  Eventually this'll use self.arduino, but that only works if it actually has an arduino connected.
-        drink_info = self.arduino.read_drink_info_from_serial()
-        self.beer_1_consumed = round(drink_info["1"]["c"] * .033814, 2)
-        self.beer_2_consumed = round(drink_info["2"]["c"] * .033814, 2)
-        return self.beer_1_consumed, self.beer_2_consumed
-
     def __init__(self,parent):
         Tkinter.Tk.__init__(self,parent)
-        self.arduino = arduino()
+#        self.arduino = arduino()
+        self.arduino = fake_arduino()
         self.parent = parent
         # The following two lines are for testing
         # Eventually this'll come from an on-disk file or AWS
         self.beer_1_consumed = 0
         self.beer_2_consumed = 0
         self.initialize()
+
+    def get_beer_consumed(self):
+        drink_info = self.arduino.read_drink_info_from_serial()
+        self.beer_1_consumed = round(drink_info["1"]["c"] * .033814, 2)
+        self.beer_2_consumed = round(drink_info["2"]["c"] * .033814, 2)
+        return self.beer_1_consumed, self.beer_2_consumed
 
     def initialize(self):
         self.grid()
@@ -75,14 +80,31 @@ class beer_display(Tkinter.Tk):
         consumedLabel2 = Tkinter.Label(self,textvariable=self.consumedVar2,
                               anchor="w",fg=foreground,bg=background, font=consumedFont, wraplength=wraplength)
 
+        image_width = 500
+        image_height = 500
+
+        self.image1 = Image.open("oatmeal_stout.jpg")
+        self.image1 = get_resized_image(self.image1, image_width, image_height, enlarge=False)
+        self.tkpi1 = ImageTk.PhotoImage(self.image1)
+        imageLabel1 = Tkinter.Label(self, image=self.tkpi1)
+
+        self.image2 = Image.open("sweet_heat.jpg")
+        self.image2 = get_resized_image(self.image2, image_width, image_height, enlarge=False)
+        self.tkpi2 = ImageTk.PhotoImage(self.image2)
+        imageLabel2 = Tkinter.Label(self, image=self.tkpi2)
+
+
+
         nameLabel1.grid(column=0,row=0,columnspan=1)
         descriptionLabel1.grid(column=0,row=1,columnspan=1)
         abvLabel1.grid(column=0,row=2,columnspan=1)
         consumedLabel1.grid(column=0,row=3,columnspan=1)
+        imageLabel1.grid(column=0,row=4,columnspan=1)
         nameLabel2.grid(column=1,row=0,columnspan=1)
         descriptionLabel2.grid(column=1,row=1,columnspan=1)
         abvLabel2.grid(column=1,row=2,columnspan=1)
         consumedLabel2.grid(column=1,row=3,columnspan=1)
+        imageLabel2.grid(column=1,row=4,columnspan=1)
 
         self.nameVar1.set("Chocolate Rain")
         self.descriptionVar1.set("A rich and creamy milk stout with notes of chocolate, vanilla, and coffee.  Warning: contains a shit-ton of lactose.")
@@ -98,6 +120,7 @@ class beer_display(Tkinter.Tk):
         self.grid_rowconfigure(1,weight=2, pad=10)
         self.grid_rowconfigure(2,weight=1, pad=10)
         self.grid_rowconfigure(3,weight=1, pad=10)
+        self.grid_rowconfigure(4,weight=1, pad=10)
 
         self.resizable(True,False)
         self.update()

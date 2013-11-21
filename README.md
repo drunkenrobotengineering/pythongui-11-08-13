@@ -3,10 +3,9 @@ pythongui-11-08-13
 
 This is a test repo while I'm working on development for the kegerator ui.  Eventually this'll be copied over to a prod repo.
 
--Look into PIL and ImageTK for displaying beer labels
-
 Necessary libraries:
 pySerial (can be installed with "pip install pyserial")
+PIL + jpeg/png support
 eventually, probably boto (can be installed with "easy_install boto")
 
 must have arduino connected at /dev/tty.arduino with baud rate 19200
