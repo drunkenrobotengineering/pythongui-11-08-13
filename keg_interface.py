@@ -24,6 +24,8 @@ def get_drinker(code):
                 })
     if (drinker['code'] == None):
         drinker['code'] = code
+    if (drinker['name'] == None):
+        drinker['name'] = "UNKNOWN"
     if (drinker['volume_consumed'] == None):
         drinker['volume_consumed'] = 0
     if (drinker['number_of_drinks'] == None):
