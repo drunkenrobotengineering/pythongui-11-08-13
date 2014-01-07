@@ -15,8 +15,12 @@ class arduino():
 
     def await_input(self):
         input = self.serial.readline()
-#            print("Received serial input: " + input)
+        print("Received serial input: " + input)
         return input
+
+    def send_output(self, output):
+        print("Sending serial output: " + str(output))
+        self.serial.write(output)
 
 class fake_arduino():
     # For testing when I don't have an Arduino handy
@@ -35,3 +39,6 @@ class fake_arduino():
         drink_info["1"]["c"] = self.one
         drink_info["2"]["c"] = self.two
         return drink_info
+
+    def send_output(self, output):
+        self.serial.write(output)

@@ -144,6 +144,12 @@ void begin_dispensing() {
   debug("begin_dispensing called.");
   if (!verify_access_permissions()) {
     // The code doesn't check out - don't turn on the tap.
+    zeroize_codes();
+    while (RFID.read() >= 0) {
+      // Empty the buffer
+    }
+    // delay briefly to prevent this from pegging our DynamoDB connection
+    delay(3000);
     return;
   }
   pulses_before_dispensing[0] = pulses[0];
@@ -160,8 +166,12 @@ void end_dispensing() {
   debug("end_dispensing called.");
   lock();
   float liters1 = (pulses[0] - pulses_before_dispensing[0]) / (7.5*60.0);
+  debug("liters1: ");
+  debug(String((int) (liters1 * 1000)));
   float liters2 = (pulses[1] - pulses_before_dispensing[1]) / (7.5*60.0);
-  send_data(liters1, liters2);
+  debug("liters2: ");
+  debug(String((int) (liters2 * 1000)));
+  send_drink_data(liters1, liters2);
   pulses_before_dispensing[0] = pulses[0];
   pulses_before_dispensing[1] = pulses[1];
   previous_pulses[0] = pulses_before_dispensing[0];
@@ -190,17 +200,32 @@ boolean verify_access_permissions() {
   // This call could, for example, implement a whitelist or a blacklist.
   // It could even call out to the RPi with the code to check something like age of the owner or how much they've had to drink recently.
   // For now, though, we'll assume everyone is allowed to drink.
-  return true;
+  send_auth_data();
+  int response = Serial.parseInt();
+
+  debug(String(response));
+  return (response != 0);
+//  return true;
 }
 
-void send_data(float liters1, float liters2) {
+void send_auth_data() {
+  Serial.print("{\"CODE\":\"");
+  Serial.print(old_code);
+  Serial.print("\", \"FUNCTION\":\"");
+  Serial.print("CHECK_CODE");
+  Serial.println("\"}");
+  }
+
+void send_drink_data(float liters1, float liters2) {
   Serial.print("{\"CODE\":\"");
   Serial.print(code);
   Serial.print("\", \"TAP_ONE\":");
   Serial.print(liters1 * 1000);
   Serial.print(",\"TAP_TWO\":");
   Serial.print(liters2 * 1000);
-  Serial.println("}");
+  Serial.print(", \"FUNCTION\":\"");
+  Serial.print("DRINK_DATA");
+  Serial.println("\"}");
   }
 
 boolean overridden() {

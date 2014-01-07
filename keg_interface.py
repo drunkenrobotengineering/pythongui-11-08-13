@@ -30,6 +30,8 @@ def get_drinker(code):
         drinker['volume_consumed'] = 0
     if (drinker['number_of_drinks'] == None):
         drinker['number_of_drinks'] = 0
+    if (drinker['allowed'] == None):
+        drinker['allowed'] = 0
 
     return drinker
                     
@@ -77,10 +79,25 @@ def update_dynamo(values):
     else:
         print("User " + code + " tapped their badge without drinking at " + datetime.fromtimestamp(timestamp).strftime("%I:%M%p on %A, %d %B %Y"))
 
+def drinker_is_allowed(code):
+    drinker = get_drinker(code)
+    return drinker['allowed']
+
+def handle_input(arduino, input):
+    values = json.loads(input)
+    if (values['FUNCTION'] == 'DRINK_DATA'):
+        update_dynamo(values)
+    elif (values['FUNCTION'] == 'CHECK_CODE'):
+        if (drinker_is_allowed(values['CODE'])):
+            arduino.send_output("1")
+        else:
+            arduino.send_output("0")
 if __name__ == "__main__":
     arduino = arduino()
     #arduino = fake_arduino()
     while ( True ) :
         input = arduino.await_input()
-        values = json.loads(input)
-        update_dynamo(values)
+        print("Received input: " + input)
+        handle_input(arduino, input)
+#        values = json.loads(input)
+#        update_dynamo(values)
