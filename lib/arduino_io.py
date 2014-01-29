@@ -7,8 +7,8 @@ import time
 import random
 
 class arduino():
-#    serial_port = "/dev/tty.arduino"
-    serial_port = "/dev/tty.usbmodem1411"
+    serial_port = "/dev/serial/by-id/usb-Arduino_LLC_Arduino_Micro-if00"
+#    serial_port = "/dev/tty.usbmodem1411"
     def __init__(self, timeout=None, writeTimeout=5):
         self.serial = serial.Serial(port=self.serial_port, baudrate=19200)
         time.sleep(3)
