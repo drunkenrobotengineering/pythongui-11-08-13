@@ -79,25 +79,29 @@ def update_dynamo(values):
     else:
         print("User " + code + " tapped their badge without drinking at " + datetime.fromtimestamp(timestamp).strftime("%I:%M%p on %A, %d %B %Y"))
 
-def drinker_is_allowed(code):
+def amount_allowed(code):
     drinker = get_drinker(code)
-    return drinker['allowed']
+    if (drinker['allowed']):
+        return 500 # A bit more than a pint
+    else:
+        return 0
 
 def handle_input(arduino, input):
     values = json.loads(input)
     if (values['FUNCTION'] == 'DRINK_DATA'):
         update_dynamo(values)
     elif (values['FUNCTION'] == 'CHECK_CODE'):
-        if (drinker_is_allowed(values['CODE'])):
-            arduino.send_output("1")
-        else:
-            arduino.send_output("0")
+        arduino.send_output(str(amount_allowed(values['CODE'])))
+
 if __name__ == "__main__":
-    arduino = arduino()
-    #arduino = fake_arduino()
-    while ( True ) :
-        input = arduino.await_input()
-        print("Received input: " + input)
-        handle_input(arduino, input)
-#        values = json.loads(input)
-#        update_dynamo(values)
+    while (True) :
+        try:
+            arduino = arduino()
+            #arduino = fake_arduino()
+            while ( True ) :
+                input = arduino.await_input()
+                print("Received input: " + input)
+                handle_input(arduino, input)
+        except:
+            print("An error occurred.  Sleeping for five seconds and continuing.")
+            time.sleep(5)

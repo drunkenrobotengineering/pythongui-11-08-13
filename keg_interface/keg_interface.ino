@@ -15,6 +15,7 @@ int TIMEOUT_LOOPS = TIMEOUT_SECONDS * 1000 / LOOP_WAIT;
 boolean engaged = false;
 
 int loops_since_last_pull = 0;
+uint16_t pulses_allowed = 0;
 uint16_t previous_pulses[2] = {0,0};
 uint16_t pulses_before_dispensing[2] = {0,0};
 
@@ -35,9 +36,19 @@ void readFlow(int i) {
     lastflowpinstate[i] = x;
 }
 
+void check_pulse_count() {
+  uint16_t pulses_since_last_pull = pulses[0] + pulses[1] - pulses_before_dispensing[0] - pulses_before_dispensing[1];
+  if (pulses_since_last_pull > pulses_allowed) {
+    end_dispensing();
+  }
+}
+
 SIGNAL(TIMER0_COMPA_vect) {
   readFlow(0);
   readFlow(1);
+  if (engaged) {
+    check_pulse_count();
+  }
 }
 
 void useInterrupt(boolean v) {
@@ -165,13 +176,13 @@ void begin_dispensing() {
 void end_dispensing() {
   debug("end_dispensing called.");
   lock();
-  float liters1 = (pulses[0] - pulses_before_dispensing[0]) / (7.5*60.0);
-  debug("liters1: ");
-  debug(String((int) (liters1 * 1000)));
-  float liters2 = (pulses[1] - pulses_before_dispensing[1]) / (7.5*60.0);
-  debug("liters2: ");
-  debug(String((int) (liters2 * 1000)));
-  send_drink_data(liters1, liters2);
+  float ml1 = pulses_to_ml(pulses[0] - pulses_before_dispensing[0]);
+  debug("ml1: ");
+  debug(String((int) (ml1)));
+  float ml2 = pulses_to_ml(pulses[1] - pulses_before_dispensing[1]);
+  debug("ml2: ");
+  debug(String((int) (ml2)));
+  send_drink_data(ml1, ml2);
   pulses_before_dispensing[0] = pulses[0];
   pulses_before_dispensing[1] = pulses[1];
   previous_pulses[0] = pulses_before_dispensing[0];
@@ -183,6 +194,16 @@ void end_dispensing() {
   }
   digitalWrite(RFID_CTRL, LOW);
   engaged = false;
+}
+
+uint16_t ml_to_pulses(float ml) {
+  uint16_t num = ml * (7.5 * 60 / 1000.0);
+  return num;
+}
+
+float pulses_to_ml(uint16_t num) {
+  float ml = num / (7.5*60.0) * 1000;
+  return ml;
 }
 
 void zeroize_codes() {
@@ -201,10 +222,11 @@ boolean verify_access_permissions() {
   // It could even call out to the RPi with the code to check something like age of the owner or how much they've had to drink recently.
   // For now, though, we'll assume everyone is allowed to drink.
   send_auth_data();
-  int response = Serial.parseInt();
+  int response = Serial.parseFloat();
 
   debug(String(response));
-  return (response != 0);
+  pulses_allowed = ml_to_pulses(response);
+  return (response > 0);
 //  return true;
 }
 
@@ -216,13 +238,13 @@ void send_auth_data() {
   Serial.println("\"}");
   }
 
-void send_drink_data(float liters1, float liters2) {
+void send_drink_data(float ml1, float ml2) {
   Serial.print("{\"CODE\":\"");
   Serial.print(code);
   Serial.print("\", \"TAP_ONE\":");
-  Serial.print(liters1 * 1000);
+  Serial.print(ml1);
   Serial.print(",\"TAP_TWO\":");
-  Serial.print(liters2 * 1000);
+  Serial.print(ml2);
   Serial.print(", \"FUNCTION\":\"");
   Serial.print("DRINK_DATA");
   Serial.println("\"}");
